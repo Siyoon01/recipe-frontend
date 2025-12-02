@@ -17,7 +17,7 @@ function FindAccount01() {
     console.log('아이디 찾기 시도:', { name, btd });
 
     try {
-      const res = await fetch('http://localhost:3001/api/user/find-id', {
+      const res = await fetch('http://localhost:3000/api/user/find-id', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

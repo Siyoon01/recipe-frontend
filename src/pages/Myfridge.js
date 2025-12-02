@@ -278,7 +278,13 @@ function Myfridge() {
     async function fetchFridge() {
       show();
       try {
-        const res = await fetch('http://localhost:3001/api/Myfridge');
+        const token = localStorage.getItem('token');
+        const res = await fetch('http://localhost:3000/api/ingredients', {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+          },
+        });
         if (!res.ok) {
           const text = await res.text().catch(() => '');
           throw new Error(`냉장고 데이터를 불러오지 못했어요: ${res.status} - ${text}`);

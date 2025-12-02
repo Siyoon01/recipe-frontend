@@ -42,11 +42,23 @@ function Mypage() {
       try {
         const token = localStorage.getItem('token');
         
-        // API 호출 (전체 알레르기, 전체 도구, 사용자 프로필)
-        const [allergiesRes, toolsRes, profileRes] = await Promise.all([
-            fetch('http://localhost:3001/api/user/allergies'),
-            fetch('http://localhost:3001/api/user/tools'),
-            fetch('http://localhost:3001/api/user/profile', {
+        // API 호출 (전체 알레르기, 전체 도구, 사용자 프로필, 사용자 선택 알레르기/조리도구)
+        const [allergiesRes, toolsRes, profileRes, userAllergiesRes, userToolsRes] = await Promise.all([
+            fetch('http://localhost:3000/api/allergies'),
+            fetch('http://localhost:3000/api/tools'),
+            fetch('http://localhost:3000/api/user/profile', {
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` 
+                }
+            }),
+            fetch('http://localhost:3000/api/profile/allergies', {
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` 
+                }
+            }),
+            fetch('http://localhost:3000/api/profile/tools', {
                 headers: { 
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}` 
@@ -60,8 +72,9 @@ function Mypage() {
             const allergiesData = await allergiesRes.json();
             const toolsData = await toolsRes.json();
             
-            const allAllergies = allergiesData.data || allergiesData; 
-            const allTools = toolsData.data || toolsData;
+            // 마스터 데이터에서 name 배열 추출
+            const allAllergies = (allergiesData.data || allergiesData).map(item => item.name || item); 
+            const allTools = (toolsData.data || toolsData).map(item => item.name || item);
 
             setAllergyList(allAllergies);
             setToolList(allTools);
@@ -70,26 +83,48 @@ function Mypage() {
             const initialAllergies = InitialState(allAllergies);
             const initialTools = InitialState(allTools);
 
-            // 3. 사용자 정보가 있으면 덮어쓰기
+            // 사용자 프로필 정보 설정
             if (profileRes.ok) {
                 const profileData = await profileRes.json();
-                if (profileData.success && profileData.user) {
+                if (profileData.success && profileData.data) {
+                    const user = profileData.data;
                     setBasicInfo({
-                        // ... 기존 basicInfo 매핑
-                        gender: profileData.user.gender,
-                        btd: profileData.user.btd,
-                        name: profileData.user.name,
-                        nickname: profileData.user.nickname,
-                        username: profileData.user.username,
+                        gender: user.gender || '',
+                        btd: user.birthdate || '',
+                        name: user.fullName || '',
+                        nickname: user.nickname || '',
+                        username: user.userId || '',
                         password: '',
                         passwordConfirm: '',
                     });
-
-                    // 기존 선택 내역 병합
-                    // (백엔드에서 선택된 것만 true로 보내준다고 가정하거나, 선택된 리스트만 보내준다면 로직 조정 필요)
-                    setAllergies({ ...initialAllergies, ...(profileData.user.allergies || {}) });
-                    setTools({ ...initialTools, ...(profileData.user.tools || {}) });
                 }
+            }
+
+            // 사용자가 선택한 알레르기와 조리도구 설정
+            if (userAllergiesRes.ok && userToolsRes.ok) {
+                const userAllergiesData = await userAllergiesRes.json();
+                const userToolsData = await userToolsRes.json();
+                
+                const selectedAllergies = (userAllergiesData.data || []).map(item => item.name || item);
+                const selectedTools = (userToolsData.data || []).map(item => item.name || item);
+                
+                // 선택된 항목만 true로 설정
+                const userAllergies = { ...initialAllergies };
+                selectedAllergies.forEach(name => {
+                    userAllergies[name] = true;
+                });
+                
+                const userTools = { ...initialTools };
+                selectedTools.forEach(name => {
+                    userTools[name] = true;
+                });
+                
+                setAllergies(userAllergies);
+                setTools(userTools);
+            } else {
+                // 사용자 선택 정보가 없으면 초기값 사용
+                setAllergies(initialAllergies);
+                setTools(initialTools);
             }
         }
 
@@ -158,20 +193,27 @@ function Mypage() {
         return;
       }
 
-      // DB 업데이트 API 구현 - 백엔드의 /api/profile 엔드포인트 사용
-      const response = await fetch('http://localhost:3001/api/user/profile', {
+      // DB 업데이트 API 구현 - 백엔드의 /api/user/profile 엔드포인트 사용
+      const updatePayload = {
+        gender: basicInfo.gender,
+        birthdate: basicInfo.btd,
+        fullName: basicInfo.name,
+        nickname: basicInfo.nickname,
+        currentPassword: basicInfo.password || undefined, // 비밀번호 확인용
+      };
+      
+      // 비밀번호가 입력되었을 경우에만 추가
+      if (basicInfo.password && basicInfo.passwordConfirm) {
+        updatePayload.userPW = basicInfo.password;
+      }
+
+      const response = await fetch('http://localhost:3000/api/user/profile', {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, // JWT 토큰 추가
+          'Content-Type': 'application/json', 
+          'Authorization': `Bearer ${token}`, // JWT 토큰 추가
         },
-        body: JSON.stringify({ // 서버로 보낼 데이터
-          gender: basicInfo.gender,
-          btd: basicInfo.btd,
-          name: basicInfo.name,
-          nickname: basicInfo.nickname,
-          username: basicInfo.username,
-          password: basicInfo.password || undefined, // 비밀번호가 입력되었을 경우에만 전송
-        }),
+        body: JSON.stringify(updatePayload),
       });
 
       if (!response.ok) {
@@ -211,23 +253,41 @@ function Mypage() {
         return;
       }
 
-    // DB 업데이트 API 호출 구현
-      const response = await fetch('http://localhost:3001/api/user/detailinfo', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          // Authorization 헤더에 토큰 추가
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(detailData),
-      });
+    // 알레르기와 조리도구를 별도 API로 분리하여 호출
+      const allergyArray = Object.keys(allergies).filter(key => allergies[key] === true);
+      
+      const [allergyRes, toolRes] = await Promise.all([
+        fetch('http://localhost:3000/api/profile/allergies', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            allergies: allergyArray,
+          }),
+        }),
+        fetch('http://localhost:3000/api/profile/tools', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            tools: tools,
+          }),
+        }),
+      ]);
 
-      if (!response.ok) {
-        throw new Error('상세 정보 수정에 실패했습니다.');
+      if (!allergyRes.ok || !toolRes.ok) {
+        const allergyError = allergyRes.ok ? null : await allergyRes.json();
+        const toolError = toolRes.ok ? null : await toolRes.json();
+        throw new Error(allergyError?.message || toolError?.message || '상세 정보 수정에 실패했습니다.');
       }
 
-      const result = await response.json();
-      console.log('상세 정보 수정 성공:', result);
+      const allergyResult = await allergyRes.json();
+      const toolResult = await toolRes.json();
+      console.log('상세 정보 수정 성공:', { allergyResult, toolResult });
       alert('상세 정보가 성공적으로 수정되었습니다!');
 
     } catch (error) {
@@ -261,14 +321,14 @@ function Mypage() {
      try {
       const token = localStorage.getItem('token');
       // API 호출로 탈퇴 처리
-      const response = await fetch('http://localhost:3001/api/user/withdraw', {
+      const response = await fetch('http://localhost:3000/api/user/profile', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
           // Authorization 헤더에 토큰 추가
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ password: withdrawPassword }), // 탈퇴 시 비밀번호 확인
+        body: JSON.stringify({ currentPassword: withdrawPassword }), // 탈퇴 시 비밀번호 확인
       });
 
       if (!response.ok) {

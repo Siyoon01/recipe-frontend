@@ -68,7 +68,13 @@ function Main() {
       show();
       try {
         // API 구현
-        const res = await fetch('/api/Myfridge/Myfridge');
+        const token = localStorage.getItem('token');
+        const res = await fetch('http://localhost:3000/api/ingredients', {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+          },
+        });
         if (!res.ok) {throw new Error('냉장고 데이터를 불러오지 못했어요');}
         const data = await res.json();
         if (!alive) return;

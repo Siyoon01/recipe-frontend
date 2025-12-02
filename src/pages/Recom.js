@@ -94,7 +94,7 @@ function Recom() {
 
   const fetchIngredients = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/ingredients');
+      const response = await fetch('http://localhost:3000/api/ingredients');
       if (response.ok) {
         const data = await response.json();
         // 데이터를 페이지별로 나누기 (한 페이지당 10개)
@@ -175,18 +175,31 @@ function Recom() {
     };
 
     try {
-      const response = await fetch('http://localhost:3001/api/recipes/search', {
+      // 백엔드의 /api/recipes/recommend API 사용 (POST)
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:3000/api/recipes/recommend', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
         },
-        body: JSON.stringify(searchData)
+        body: JSON.stringify({
+          query: {
+            queryText: topicTags.join(' '),
+            selectedIngredientIds: selectedIngredients, // 재료 이름 배열 (백엔드에서 ID로 변환 필요)
+          },
+          onlyMainIngredient: hasMainIngredient,
+        })
       });
 
       if (response.ok) {
-        const data = await response.json();
-        setRecipes(data);
+        const result = await response.json();
+        const recipes = result.data || result;
+        setRecipes(recipes);
         setHasSearched(true);
+      } else {
+        const errorData = await response.json();
+        alert(errorData.message || '레시피 검색에 실패했습니다.');
       }
     } catch (error) {
       console.log('검색 API 호출 실패, 더미 데이터 사용');
