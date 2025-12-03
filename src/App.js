@@ -6,6 +6,7 @@ import Header from './components/Header';
 import MainHeader from './components/MainHeader';
 import Nav from './components/Nav';
 import Footer from './components/Footer';
+import ProtectedRoute from './components/ProtectedRoute';
 
 // 사용자 페이지
 import Myfridge from './pages/Myfridge';
@@ -69,9 +70,9 @@ function AppContent() {
          {/* 기본 경로(/)로 접근 시 /Home으로 리다이렉트하는 Route */}
          <Route path="/" element={isAuthenticated() ? <Navigate to="/Main" /> : <Navigate to="/Home" />} />
          <Route path="/Home" element={<Home />} />
-         <Route path="/Myfridge" element={<Myfridge />}/>
-         <Route path="/Recom" element={<Recom />}/>
-         <Route path="/Mypage" element={<Mypage />}/>
+         <Route path="/Myfridge" element={<ProtectedRoute><Myfridge /></ProtectedRoute>}/>
+         <Route path="/Recom" element={<ProtectedRoute><Recom /></ProtectedRoute>}/>
+         <Route path="/Mypage" element={<ProtectedRoute><Mypage /></ProtectedRoute>}/>
          <Route path="/Register" element={<Register />}/>
          <Route path="/Login" element={<Login />}/>
          <Route path="/FindAccount01" element={<FindAccount01 />}/>

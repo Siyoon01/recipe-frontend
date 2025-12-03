@@ -40,9 +40,9 @@ function Login() {
 
     if (res.ok) { // HTTP 상태 코드가 200번대 (200, 201 등) -> 성공
       localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user)); // API 설계에 따라 user 객체
+      localStorage.setItem('user', JSON.stringify(data.data)); // result_code 형식에 맞게 data.data 사용
       alert(data.message);
-      navigate('/inforegistration'); // 올바른 라우트로 변경
+      navigate('/InfoRegistration');
     } else { // HTTP 상태 코드가 400, 500번대 -> 실패
       alert(data.message || '로그인 실패'); // 백엔드에서 보낸 실패 메시지 또는 기본 메시지
     }

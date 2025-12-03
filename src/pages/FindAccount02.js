@@ -72,6 +72,7 @@ function FindAccount02() {
         body: JSON.stringify({
           resetToken: resetToken,
           newPassword: newPassword,
+          confirmPassword: newPasswordConfirm,
         }),
     });
 
@@ -167,12 +168,15 @@ function FindAccount02() {
                 name="newPasswordConfirm"
                 type="password"
                 value={newPasswordConfirm}
-                onChange={setNewPasswordConfirm}
-                placeholder="비밀번호를 다시 입력하세요" />
+                onChange={(e) => setNewPasswordConfirm(e.target.value)}
+                placeholder="비밀번호를 다시 입력하세요"
+                required />
 
-              <button type="submit" className="go-to-Userlogin" onClick={goToLogin}>
-                로그인 페이지로 이동하기
-              </button>
+              <div className="button-container">
+                <button type="submit" className="reset-password-btn">
+                  비밀번호 재설정
+                </button>
+              </div>
             </form>
             </div>
           </div>

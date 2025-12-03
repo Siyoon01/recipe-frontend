@@ -29,7 +29,7 @@ function Login() {
 
     if (res.ok) { // HTTP 상태 코드가 200번대 (200, 201 등) -> 성공
       localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('user', JSON.stringify(data.data)); // result_code 형식에 맞게 data.data 사용
       alert(data.message);
       navigate('/Main');
     } else { // HTTP 상태 코드가 400, 500번대 -> 실패

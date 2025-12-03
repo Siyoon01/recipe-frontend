@@ -19,8 +19,7 @@ function Mypage() {
     name:'',
     nickname: '',
     username: '',
-    password: '',
-    passwordConfirm: '',
+    password: '', // 비밀번호 확인용 (수정 불가능)
   });
 
 // 전체 목록 저장 State
@@ -93,9 +92,8 @@ function Mypage() {
                         btd: user.birthdate || '',
                         name: user.fullName || '',
                         nickname: user.nickname || '',
-                        username: user.userId || '',
-                        password: '',
-                        passwordConfirm: '',
+                        username: user.userID || user.userId || '', // 백엔드는 userID로 반환
+                        password: '', // 비밀번호 확인용 (수정 불가능)
                     });
                 }
             }
@@ -168,24 +166,16 @@ function Mypage() {
     
     console.log('기본 정보 수정 제출 데이터:', basicInfo); 
 
-    const {gender, btd, name, nickname, username, password, passwordConfirm} = basicInfo;
+    const {gender, btd, name, nickname, password} = basicInfo;
 
-      // 비밀번호 일치 여부 확인
-      if(password || passwordConfirm) {
-        if (password !== passwordConfirm) {
-          alert("비밀번호가 일치하지 않습니다.");
-          return; // 비밀번호 불일치 시 함수 실행 중단
-        }
-      }
+    // 비밀번호 확인 필수
+    if (!password) {
+      alert('비밀번호를 입력해주세요.');
+      return;
+    }
 
     try {
-      const updateData = {gender, btd, name, nickname, username};
-
-      if (password && passwordConfirm) {
-        updateData.password = password;
-      }
-    
-        // localStorage에서 JWT 토큰 가져오기
+      // localStorage에서 JWT 토큰 가져오기
       const token = localStorage.getItem('token');
       if (!token) {
         alert('로그인이 필요합니다.');
@@ -194,18 +184,15 @@ function Mypage() {
       }
 
       // DB 업데이트 API 구현 - 백엔드의 /api/user/profile 엔드포인트 사용
+      // 비밀번호는 변경 불가능, 비밀번호 확인용으로만 사용
+      // userID는 수정 불가능하므로 제외
       const updatePayload = {
         gender: basicInfo.gender,
         birthdate: basicInfo.btd,
         fullName: basicInfo.name,
         nickname: basicInfo.nickname,
-        currentPassword: basicInfo.password || undefined, // 비밀번호 확인용
+        currentPassword: basicInfo.password, // 비밀번호 확인용 (필수)
       };
-      
-      // 비밀번호가 입력되었을 경우에만 추가
-      if (basicInfo.password && basicInfo.passwordConfirm) {
-        updatePayload.userPW = basicInfo.password;
-      }
 
       const response = await fetch('http://localhost:3000/api/user/profile', {
         method: 'PUT',
@@ -216,24 +203,24 @@ function Mypage() {
         body: JSON.stringify(updatePayload),
       });
 
+      const result = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || '기본 정보 수정에 실패했습니다.');
+        throw new Error(result.message || '기본 정보 수정에 실패했습니다.');
       }
-      const result = await response.json(); // 서버 응답 데이터
+
       console.log('기본 정보 수정 성공:', result);
       alert('기본 정보가 성공적으로 수정되었습니다!');
 
-       // 성공 후 비밀번호 입력 필드 초기화
+      // 성공 후 비밀번호 입력 필드 초기화
       setBasicInfo(prev => ({
         ...prev,
         password: '',
-        passwordConfirm: '',
       }));
 
     } catch (error) {
       console.error('기본 정보 수정 중 오류 발생:', error);
-      alert('기본 정보 수정에 실패했습니다.');
+      alert(error.message || '기본 정보 수정에 실패했습니다.');
     }
   };
 
@@ -363,27 +350,20 @@ function Mypage() {
           <label htmlFor="id">아이디</label>
           <input 
           id="id"
-          name="id"
+          name="username"
           type="text" 
           value={basicInfo.username} 
           onChange={handleBasicChange} />
           
-          <label htmlFor="password">비밀번호</label>
+          <label htmlFor="password">비밀번호 확인 (필수)</label>
           <input
             id="password"
             name="password"
             type="password"
             value={basicInfo.password}
-            onChange={handleBasicChange} />
-          
-          <label htmlFor="passwordConfirm">비밀번호 확인</label>
-          <input
-            id="passwordConfirm"
-            name="passwordConfirm"
-            type="password"
-            value={basicInfo.passwordConfirm}
             onChange={handleBasicChange}
-            placeholder="비밀번호를 다시 입력하세요" />
+            placeholder="정보 수정을 위해 비밀번호를 입력하세요"
+            required />
           
           <label htmlFor="name">이름</label>
           <input
