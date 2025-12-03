@@ -7,6 +7,7 @@ import MainHeader from './components/MainHeader';
 import Nav from './components/Nav';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminProtectedRoute from './components/AdminProtectedRoute';
 
 // 사용자 페이지
 import Myfridge from './pages/Myfridge';
@@ -48,9 +49,8 @@ function AppContent() {
   const handleSearch = (query) => setSearchQuery(query);
 
   // 사용자 정보와 관리자 여부 확인
-  // const currentUser = getUserInfo();
-  // const isAdmin = currentUser && currentUser.role === 'admin';
-  const isAdmin = true;
+  const currentUser = getUserInfo();
+  const isAdmin = currentUser && currentUser.role === 'admin';
 
   // 현재 경로가 관리자 페이지인지 확인
   const isAdminPage = location.pathname.toLocaleLowerCase().startsWith('/admin');
@@ -83,11 +83,11 @@ function AppContent() {
          <Route path="/RecipeDetail/:id" element={<RecipeDetail />} />
          <Route path="/Main" element={<Main />}/>
          {/* 관리자 페이지 */}
-          <Route path="/admin" element={isAdmin ? <AdminLayout /> : <Navigate to="/" />}>
-            <Route index element={<AdminMain />} /> 
-            <Route path="AdminUser" element={<AdminUser />} />
-            <Route path="AdminRecipe" element={<AdminRecipe />} />
-            <Route path="AdminStatistics" element={<AdminStatistics />} />
+          <Route path="/admin" element={<AdminProtectedRoute><AdminLayout /></AdminProtectedRoute>}>
+            <Route index element={<AdminProtectedRoute><AdminMain /></AdminProtectedRoute>} /> 
+            <Route path="AdminUser" element={<AdminProtectedRoute><AdminUser /></AdminProtectedRoute>} />
+            <Route path="AdminRecipe" element={<AdminProtectedRoute><AdminRecipe /></AdminProtectedRoute>} />
+            <Route path="AdminStatistics" element={<AdminProtectedRoute><AdminStatistics /></AdminProtectedRoute>} />
           </Route>
        </Routes>
        </div>
